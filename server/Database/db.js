@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
+dotenv.config();
 
-const mongooseURL = 'mongodb://localhost:27017/chatapp';
+const mongooseURL = process.env.mongooseURL;
 
 
 export const connectDB = async () => {

@@ -4,11 +4,14 @@ import { Server } from "socket.io";
 import { createClient } from "redis";
 import { connectDB } from "./Database/db.js";
 import Message from "./model/messageModel.js";
+import dotenv from 'dotenv';
 
-
+dotenv.config();
 const app = express();
 
-const REDIS_URL='redis://localhost:6379'
+const REDIS_URL= process.env.REDIS_URL;
+
+
 const redisPublisher=createClient({url:REDIS_URL})
 const redisSubscriber=createClient({url:REDIS_URL})
 
@@ -94,8 +97,9 @@ io.on('connection',(Socket)=>{
     })
 })
 
+const PORt = process.env.PORT;
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 server.listen(PORT,()=>{
     console.log(`server is running on port ${PORT}`);  
 })
