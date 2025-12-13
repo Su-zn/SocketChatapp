@@ -10,12 +10,44 @@ function Joinui() {
 
 
     const handlejoin = ()=>{
-      socket.once('connect',()=>{
-        socket.emit('joinRoom',username)
-          navigate('/chat',{state:{username}})
-      })
-      socket.connect()
+      if(!username.trim()) {
+        alert('Please enter a username');
+        return;
       }
+
+      // Check if already connected
+      if(socket.connected) {
+        socket.emit('joinRoom',username)
+        navigate('/chat',{state:{username}})
+        return;
+      }
+
+      // Set up connection handlers
+      const onConnect = ()=>{
+        console.log('Socket connected');
+        socket.emit('joinRoom',username)
+        navigate('/chat',{state:{username}})
+      }
+
+      const onConnectError = (error)=>{
+        console.error('Connection error:', error);
+        alert('Failed to connect to server. Please try again.');
+      }
+
+      socket.once('connect', onConnect);
+      socket.once('connect_error', onConnectError);
+      
+      socket.connect();
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        if(!socket.connected) {
+          socket.off('connect', onConnect);
+          socket.off('connect_error', onConnectError);
+          alert('Connection timeout. Please check your internet connection and try again.');
+        }
+      }, 10000);
+    }
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-purple-500">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-80 text-center">

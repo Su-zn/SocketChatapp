@@ -33,9 +33,18 @@ function Chatui() {
 
 
   useEffect(()=>{
-    if(!socket.connected) return;
+    if(!socket.connected) {
+      // Wait for connection
+      const onConnect = ()=>{
+        // Request chat history after connection
+        socket.emit('joinRoom', username);
+      }
+      socket.once('connect', onConnect);
+      return () => socket.off('connect', onConnect);
+    }
 
     const onChatHistory = (history)=>{
+      console.log('Chat history received:', history);
       setChatHistory(history)
     }
 
@@ -43,7 +52,7 @@ function Chatui() {
 
     return ()=>socket.off('chatHistory',onChatHistory)
 
-  },[socket,setChatHistory])
+  },[socket, username])
 
 
 
@@ -55,16 +64,20 @@ function Chatui() {
 
   //chat message rendering
   useEffect(()=>{
-    if(socket.connected){
+    const setupMessageListener = ()=>{
       socket.on('chatMessage',onMessage)
-      return ()=>socket.off('chatMessage',onMessage) 
-    }
-    else{
-      socket.on('connect',()=>{
-        socket.on('chatMessage',onMessage)
-      })
     }
 
+    if(socket.connected){
+      setupMessageListener();
+    } else {
+      socket.once('connect', setupMessageListener);
+    }
+
+    return ()=>{
+      socket.off('chatMessage',onMessage);
+      socket.off('connect', setupMessageListener);
+    }
   },[socket])
 
 

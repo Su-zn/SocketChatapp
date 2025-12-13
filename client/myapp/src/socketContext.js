@@ -11,7 +11,14 @@ export const ContextProvider = (props)=>{
 
     if(!socket.current){
         const url = process.env.REACT_APP_SOCKET_URL || 'http://localhost:4000'
-        socket.current = io(url,{autoConnect:false})
+        socket.current = io(url,{
+            autoConnect:false,
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5,
+            timeout: 20000
+        })
     }
     return(
         <socketContext.Provider value={socket.current}>
