@@ -33,8 +33,7 @@ export const useSocket = ()=>{
     const context = useContext(socketContext)
 
     if(!context){
-        throw new console.error("socket must be used with in the provide parameter");
-        
+        throw new Error("socket must be used within the provider");
     }
     return context
 }

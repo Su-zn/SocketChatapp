@@ -116,6 +116,9 @@ io.on('connection',(Socket)=>{
         setTimeout(()=>emitRoomCount(),0)
     })
 })
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT,()=>{

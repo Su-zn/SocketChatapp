@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const mongooseURL = process.env.mongooseURL ||'mongodb+srv://admin:admin@cluster0.zh0rjuy.mongodb.net/?appName=Cluster0';
+const mongooseURL = process.env.mongooseURL || process.env.MONGODB_URL || 'mongodb://localhost:27017/chatapp';
 
 
 export const connectDB = async () => {
