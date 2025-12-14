@@ -22,22 +22,18 @@ function Joinui() {
         return;
       }
 
-      // Set up connection handlers
       const onConnect = ()=>{
-        console.log('Socket connected');
         socket.emit('joinRoom',username)
         navigate('/chat',{state:{username}})
       }
 
-      const onConnectError = (error)=>{
-        console.error('Connection error:', error);
+      const onConnectError = ()=>{
         alert('Failed to connect to server. Please try again.');
       }
 
       socket.once('connect', onConnect);
       socket.once('connect_error', onConnectError);
       
-      console.log('Attempting to connect to:', socket.io.uri);
       socket.connect();
 
       // Timeout after 25 seconds (longer than socket timeout of 20s)

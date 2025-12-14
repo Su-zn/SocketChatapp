@@ -26,12 +26,17 @@ async function initRedis(io,roomName) {
         await Promise.all([redisPublisher.connect(),redisSubscriber.connect()])
         console.log('Redis connected successfully');
 
-        //Receive from all chat message and rebrocast to socket.io room
-        // pSubscribe callback receives (pattern, channel, message)
         await redisSubscriber.pSubscribe('chat:*',async(pattern, channel, message)=>{
             let payload
-            try{payload=JSON.parse(message)} catch{payload={text:message}}
-            io.to(roomName).emit('chatMessage',payload)
+            try{
+                payload=JSON.parse(message)
+            } catch(error){
+                return;
+            }
+            
+            if (!payload.username || payload.username.trim() === '') {
+                return;
+            }
         })
     } catch (error) {
         console.error('Redis connection failed:', error);
@@ -64,11 +69,8 @@ const emitRoomCount=()=>{
 }
 
 io.on('connection',(Socket)=>{
-    console.log("user connected",Socket.id);
-    console.log("Connection from:", Socket.handshake.headers.origin || Socket.handshake.address);
 
     Socket.on('joinRoom',async(username)=>{
-        console.log(`${username} joining the room`);
        await Socket.join(Room);
 
        io.to(Room).emit('userNotice',username)
@@ -76,42 +78,48 @@ io.on('connection',(Socket)=>{
        emitRoomCount();
 
        try {
-        const chatHistory = await Message.find({room:Room}).sort({time:1}).limit(50).lean();
-
-        Socket.emit('chatHistory',chatHistory)
-        console.log('Chat history emitted to user',Socket.id);
+        const chatHistory = await Message.find({room:Room}).sort({_id: 1}).limit(50).lean();
+        Socket.emit('chatHistory', chatHistory);
        } catch (error) {
-        console.error('Error emitting chat history to user',error);
+        console.error('Error emitting chat history to user', error);
        }
 
     })
 
     Socket.on('chatMessage',async(msg)=>{
-        const payload = typeof msg === 'string' ? { text: msg, createdAt: Date.now() } : msg;
+        if (!msg || !msg.username || typeof msg.username !== 'string' || msg.username.trim() === '') {
+            return;
+        }
         
-        // Publish to Redis if connected
+        const payload = {
+            username: msg.username.trim(),
+            text: msg.text || '',
+            time: msg.time || new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),
+            Date: msg.Date || new Date().toLocaleTimeString()
+        };
+        
+        try {
+            const messageDoc = new Message({
+                username: payload.username,
+                text: payload.text,
+                time: payload.time,
+                room:Room,
+            })
+            const savedMessage = await messageDoc.save();
+            payload._id = savedMessage._id.toString();
+        } catch (error) {
+            console.error('Error saving message to database:', error);
+        }
+        
+        io.to(Room).emit('chatMessage', payload);
+        
         if (redisPublisher.isOpen) {
             try {
-                await redisPublisher.publish('chat:room', JSON.stringify(payload));
+                const redisPayload = JSON.stringify(payload);
+                await redisPublisher.publish('chat:room', redisPayload);
             } catch (error) {
                 console.error('Error publishing to Redis:', error);
             }
-        } else {
-            // If Redis is not available, broadcast directly
-            io.to(Room).emit('chatMessage', payload);
-        }
-
-        try {
-            const message = new Message({
-                username:msg.username,
-                text:msg.text,
-                time:msg.time || new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),
-                room:Room,
-            })
-            await message.save();
-            console.log('Message saved to database',message);
-        } catch (error) {
-            console.error('Error saving message to database',error);
         }
 
     })
@@ -141,7 +149,5 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT,()=>{
-    console.log(`server is running on port ${PORT}`);
-    console.log(`Socket.IO server ready for connections`);
-    console.log(`CORS origin: ${process.env.CORS_ORIGIN || "*"}`);
+    console.log(`Server running on port ${PORT}`);
 })
