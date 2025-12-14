@@ -9,6 +9,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 const app = express();
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const REDIS_URL= process.env.REDIS_URL || 'redis://localhost:6379';
 
 const redisPublisher=createClient({url:REDIS_URL})
@@ -61,6 +65,7 @@ const emitRoomCount=()=>{
 
 io.on('connection',(Socket)=>{
     console.log("user connected",Socket.id);
+    console.log("Connection from:", Socket.handshake.headers.origin || Socket.handshake.address);
 
     Socket.on('joinRoom',async(username)=>{
         console.log(`${username} joining the room`);
@@ -120,7 +125,23 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    socketIO: "running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Catch-all for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found", path: req.path });
+});
+
 const PORT = process.env.PORT || 4000;
 server.listen(PORT,()=>{
-    console.log(`server is running on port ${PORT}`);  
+    console.log(`server is running on port ${PORT}`);
+    console.log(`Socket.IO server ready for connections`);
+    console.log(`CORS origin: ${process.env.CORS_ORIGIN || "*"}`);
 })

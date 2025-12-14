@@ -37,16 +37,21 @@ function Joinui() {
       socket.once('connect', onConnect);
       socket.once('connect_error', onConnectError);
       
+      console.log('Attempting to connect to:', socket.io.uri);
       socket.connect();
 
-      // Timeout after 10 seconds
-      setTimeout(() => {
+      // Timeout after 25 seconds (longer than socket timeout of 20s)
+      const timeoutId = setTimeout(() => {
         if(!socket.connected) {
           socket.off('connect', onConnect);
           socket.off('connect_error', onConnectError);
           alert('Connection timeout. Please check your internet connection and try again.');
         }
-      }, 10000);
+      }, 25000);
+
+      // Clean up timeout if connection succeeds
+      socket.once('connect', () => clearTimeout(timeoutId));
+      socket.once('connect_error', () => clearTimeout(timeoutId));
     }
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-400 to-purple-500">

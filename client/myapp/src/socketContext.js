@@ -10,7 +10,7 @@ export const ContextProvider = (props)=>{
     const socket = useRef()
 
     if(!socket.current){
-        const url ="https://socketchatapp-528q.onrender.com "|| 'http://localhost:4000'
+        const url = process.env.REACT_APP_SOCKET_URL || 'https://socketchatapp-528q.onrender.com'
         socket.current = io(url,{
             autoConnect:false,
             transports: ['websocket', 'polling'],

@@ -11,10 +11,13 @@ export const connectDB = async () => {
         if(!mongooseURL) {
             throw new Error('MongoDB URL is not defined');
         }
+        console.log('Attempting to connect to MongoDB...');
+        console.log('MongoDB URL:', mongooseURL.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials in logs
         await mongoose.connect(mongooseURL);
         console.log('Database connected successfully');
     } catch (error) {
-        console.log('Database connection failed',error);
+        console.error('Database connection failed:', error.message);
+        console.error('Full error:', error);
         process.exit(1);
     }
     
